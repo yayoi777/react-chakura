@@ -8,17 +8,32 @@ import {
 } from '@chakra-ui/react';
 
 import { UserCard } from '../organisms/user/UserCard';
-import { useAllUsers } from '../../hooks/useAllUsers';
 import { UserDetailModal } from '../organisms/user/UserDetailModal';
+import { useAllUsers } from '../../hooks/useAllUsers';
+import { useSelectUsers } from '../../hooks/useSelectUsers';
+import { useLoginUser } from '../../hooks/useLoginUser';
 
 export const UserManagemen: VFC = memo(() => {
-  const { getUsers, loading, users } = useAllUsers();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { getUsers, loading, users } = useAllUsers();
+  const { onSelectUser, selectedUser } = useSelectUsers();
+
+  const { loginUser } = useLoginUser();
+  console.log(loginUser);
+
   //getUserするのは初回の1回のみ
   useEffect(() => getUsers(), []);
 
-  // propsとして渡す関数は毎回再作成するとレンダリングの効率が悪いのでuseCallbackを使ってmemo化する
-  const onClickUser = useCallback(() => onOpen(), []);
+  /* propsとして渡す関数は毎回再作成するとレンダリングの効率が悪いのでuseCallbackを使ってmemo化する
+   *  今回の場合は、users,onSelectUser,onOpenが更新された時に再レンダリングが走るようにする。
+   *  やらないとモーダルクリックした時にユーザー情報が入らない。
+   */
+  const onClickUser = useCallback(
+    (id: number) => {
+      onSelectUser({ id, users, onOpen });
+    },
+    [users, onSelectUser, onOpen]
+  );
 
   return (
     <>
@@ -31,6 +46,7 @@ export const UserManagemen: VFC = memo(() => {
           {users.map((user) => (
             <WrapItem key={user.id} mx="auto">
               <UserCard
+                id={user.id}
                 imageUrl="https://source.unsplash.com/random/"
                 userName={user.username}
                 fullName={user.name}
@@ -40,7 +56,12 @@ export const UserManagemen: VFC = memo(() => {
           ))}
         </Wrap>
       )}
-      <UserDetailModal isOpen={isOpen} onClose={onClose} />
+      <UserDetailModal
+        isOpen={isOpen}
+        onClose={onClose}
+        isAdmin={loginUser?.isAdmin}
+        user={selectedUser}
+      />
     </>
   );
 });
